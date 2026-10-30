@@ -176,17 +176,41 @@ static std::string describe_setting(const Setting& setting)
 	               setting.help);
 }
 
-// The accepted values of a restricted setting, plus its current value in case
-// the config uses one DOSBox doesn't list
+// The accepted values of a restricted setting, plus its current and default
+// values in case DOSBox doesn't list them
 static std::vector<std::string> get_choices(const Setting& setting)
 {
 	auto choices = setting.values;
 
-	const auto current = NormaliseValue(setting, setting.value);
-	if (std::ranges::find(choices, current) == choices.end()) {
-		choices.insert(choices.begin(), current);
+	const auto add_if_missing = [&](const std::string& value) {
+		const auto normalised = NormaliseValue(setting, value);
+		if (std::ranges::find(choices, normalised) == choices.end()) {
+			choices.insert(choices.begin(), normalised);
+		}
+	};
+	add_if_missing(setting.value);
+	if (!setting.default_value.empty()) {
+		add_if_missing(setting.default_value);
 	}
 	return choices;
+}
+
+static std::string make_choice_label(const Setting& setting, const std::string& choice)
+{
+	const auto is_current = (choice == NormaliseValue(setting, setting.value));
+	const auto is_default = (choice ==
+	                         NormaliseValue(setting, setting.default_value));
+
+	if (is_current && is_default) {
+		return choice + "  (current, default)";
+	}
+	if (is_current) {
+		return choice + "  (current)";
+	}
+	if (is_default) {
+		return choice + "  (default)";
+	}
+	return choice;
 }
 
 // Restricted settings use drop-down lists, the others editable combo boxes
@@ -196,15 +220,21 @@ static void fill_value_combo(const HWND combo, const Setting& setting)
 	ComboBox_ResetContent(combo);
 
 	if (setting.restricted) {
-		const auto current = NormaliseValue(setting, setting.value);
 		for (const auto& choice : get_choices(setting)) {
-			const auto label = (choice == current) ? choice + "  (current)"
-			                                       : choice;
-			ComboBox_AddString(combo, Utf8ToWide(label).c_str());
+			ComboBox_AddString(
+			        combo,
+			        Utf8ToWide(make_choice_label(setting, choice)).c_str());
 		}
 	} else {
-		for (const auto& value : setting.values) {
-			ComboBox_AddString(combo, Utf8ToWide(value).c_str());
+		// Offer the default value too, so it's easy to go back to
+		auto suggestions = setting.values;
+		if (!setting.default_value.empty() &&
+		    std::ranges::find(suggestions, setting.default_value) ==
+		            suggestions.end()) {
+			suggestions.insert(suggestions.begin(), setting.default_value);
+		}
+		for (const auto& suggestion : suggestions) {
+			ComboBox_AddString(combo, Utf8ToWide(suggestion).c_str());
 		}
 	}
 }
