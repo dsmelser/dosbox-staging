@@ -297,27 +297,23 @@ std::string JoinPowerShellCommandLine(const std::vector<std::string>& args)
 	if (args.empty()) {
 		return {};
 	}
-	const auto arguments = args | std::views::drop(1);
 
-	// Windows PowerShell 5.1 drops the quotes inside the arguments it passes
-	// to programs. Arguments with quotes therefore follow the stop-parsing
-	// token instead, which passes them on as they are, except for expanding
-	// '%NAME%' environment variables.
-	const auto has_quotes = std::ranges::any_of(arguments, [](const std::string& arg) {
-		return arg.find('"') != std::string::npos;
-	});
+	// Start-Process passes the arguments on as one string, exactly like the
+	// launcher does. PowerShell's own argument passing would drop quotes
+	// inside arguments in Windows PowerShell 5.1, and its stop-parsing
+	// token expands '%NAME%' environment variables.
+	auto command_line = "Start-Process -FilePath " +
+	                    QuotePowerShellArg(args.front());
 
-	// The call operator makes PowerShell run a quoted program path rather
-	// than treat it as a string
-	auto command_line = "& " + QuotePowerShellArg(args.front());
-	if (has_quotes) {
-		command_line += " --%";
+	const auto arguments = std::vector<std::string>(args.begin() + 1,
+	                                                args.end());
+	if (!arguments.empty()) {
+		command_line += " -ArgumentList " +
+		                QuotePowerShellArg(JoinCommandLine(arguments));
 	}
-	for (const auto& arg : arguments) {
-		command_line += ' ';
-		command_line += has_quotes ? QuoteArg(arg) : QuotePowerShellArg(arg);
-	}
-	return command_line;
+
+	// Like running the program directly: in the same console, waiting for it
+	return command_line + " -NoNewWindow -Wait";
 }
 
 } // namespace Launcher
