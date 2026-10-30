@@ -80,8 +80,11 @@ protected:
 		std_fs::remove_all(folder, ec);
 	}
 
-	const std_fs::path folder = std_fs::temp_directory_path() /
-	                            "dosbox_launcher_tests";
+	// CTest runs the tests in parallel, so each needs its own folder
+	const std_fs::path folder =
+	        std_fs::temp_directory_path() /
+	        (std::string("dosbox_launcher_tests_") +
+	         ::testing::UnitTest::GetInstance()->current_test_info()->name());
 };
 
 TEST_F(LauncherFolder, ClassifiesItems)
