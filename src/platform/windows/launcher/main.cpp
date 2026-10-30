@@ -5,6 +5,7 @@
 // for a single DOSBox run, then starts DOSBox with the right-clicked program,
 // folder or config file.
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -59,6 +60,16 @@ static std::optional<Launcher::SettingsSchema> query_settings(
 		return {};
 	}
 	return Launcher::ParseSettingsSchema(*output);
+}
+
+// The setting is on by default, should a DOSBox version not list it
+static bool is_automount_enabled(const Launcher::SettingsSchema& schema)
+{
+	const auto it = std::ranges::find(schema.settings,
+	                                  "automount",
+	                                  &Launcher::Setting::name);
+
+	return it == schema.settings.end() || it->value == "on";
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
@@ -116,7 +127,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
 
 	if (item.kind == Launcher::ItemKind::Folder) {
 		state.options.mount_folder_as_c = Launcher::ShouldMountFolderByDefault(
-		        item.path);
+		        item.path, is_automount_enabled(*schema));
 	}
 
 	if (!Launcher::ShowLauncherDialog(instance, state)) {

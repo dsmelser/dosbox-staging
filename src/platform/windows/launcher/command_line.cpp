@@ -92,10 +92,23 @@ bool CanStartByName(const std::string_view file_name)
 	       file_name.find_first_of("'%") == std::string_view::npos;
 }
 
-bool ShouldMountFolderByDefault(const std_fs::path& folder)
+// DOSBox mounts the 'drives\a' to 'drives\y' folders as the drives of the
+// same letters
+static bool has_drive_folders(const std_fs::path& folder)
 {
 	std::error_code ec = {};
-	return !std_fs::exists(folder / "drives", ec) &&
+	for (auto letter = 'a'; letter < 'z'; ++letter) {
+		if (std_fs::exists(folder / "drives" / std::string(1, letter), ec)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ShouldMountFolderByDefault(const std_fs::path& folder, const bool automount)
+{
+	std::error_code ec = {};
+	return !(automount && has_drive_folders(folder)) &&
 	       !std_fs::exists(folder / "dosbox.conf", ec);
 }
 

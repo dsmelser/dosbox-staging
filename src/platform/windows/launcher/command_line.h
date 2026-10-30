@@ -52,9 +52,10 @@ bool IsDosFileName(std::string_view file_name);
 // into double quotes on Windows, and '%' starts a batch variable.
 bool CanStartByName(std::string_view file_name);
 
-// Folders set up for DOSBox (with a 'drives' folder or a local 'dosbox.conf')
-// mount their drives themselves
-bool ShouldMountFolderByDefault(const std_fs::path& folder);
+// Folders set up for DOSBox mount their drives themselves: those with a local
+// 'dosbox.conf', or with drive folders DOSBox mounts automatically ('drives\c'
+// and the like, if the 'automount' setting is on)
+bool ShouldMountFolderByDefault(const std_fs::path& folder, bool automount);
 
 // Makes DOSBox load the same configuration files as the actual run; also used
 // to query the settings with '--list-settings-json'

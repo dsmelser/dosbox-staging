@@ -151,14 +151,21 @@ TEST_F(LauncherFolder, ClassifiesItems)
 
 TEST_F(LauncherFolder, MountsPlainFoldersByDefault)
 {
-	EXPECT_TRUE(ShouldMountFolderByDefault(folder));
+	constexpr auto Automount = true;
+
+	EXPECT_TRUE(ShouldMountFolderByDefault(folder, Automount));
 
 	std::ofstream(folder / "dosbox.conf") << "[cpu]\n";
-	EXPECT_FALSE(ShouldMountFolderByDefault(folder));
-
+	EXPECT_FALSE(ShouldMountFolderByDefault(folder, Automount));
 	std_fs::remove(folder / "dosbox.conf");
+
+	// DOSBox only mounts drive letter folders, and only with 'automount' on
 	std_fs::create_directory(folder / "drives");
-	EXPECT_FALSE(ShouldMountFolderByDefault(folder));
+	EXPECT_TRUE(ShouldMountFolderByDefault(folder, Automount));
+
+	std_fs::create_directory(folder / "drives" / "c");
+	EXPECT_FALSE(ShouldMountFolderByDefault(folder, Automount));
+	EXPECT_TRUE(ShouldMountFolderByDefault(folder, !Automount));
 }
 
 TEST_F(LauncherFolder, BuildsFolderArgs)
