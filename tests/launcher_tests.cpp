@@ -68,12 +68,11 @@ TEST(LauncherCommandLine, RecognisesDosFileNames)
 TEST(LauncherCommandLine, RecognisesNamesTheShellWouldAlter)
 {
 	EXPECT_TRUE(CanStartByName("GAME.EXE"));
-	EXPECT_TRUE(CanStartByName("GAME@2.EXE"));
+	EXPECT_TRUE(CanStartByName("@GAME.EXE"));
 
 	EXPECT_FALSE(CanStartByName("LONGNAME1.EXE"));
 	EXPECT_FALSE(CanStartByName("A'B.EXE"));
 	EXPECT_FALSE(CanStartByName("A%B.EXE"));
-	EXPECT_FALSE(CanStartByName("@GAME.EXE"));
 }
 
 class LauncherFolder : public ::testing::Test {
@@ -158,8 +157,17 @@ TEST(LauncherCommandLine, BuildsProgramArgs)
 	                "cpu cpu_cycles=5000",
 	                "--noautoexec",
 	                "-c",
-	                "KEEN1.EXE",
+	                ".\\KEEN1.EXE",
 	                dir}));
+}
+
+TEST(LauncherCommandLine, StopsShellCommandsFromShadowingPrograms)
+{
+	const Item item = {ItemKind::Program, GameDir / "DIR.EXE"};
+	const auto dir  = PathToUtf8(GameDir);
+
+	EXPECT_EQ(BuildRunArgs(item, {}, {}),
+	          (Args{"--working-dir", dir, "--noautoexec", "-c", ".\\DIR.EXE", dir}));
 }
 
 TEST(LauncherCommandLine, CallsBatchFiles)
@@ -176,7 +184,7 @@ TEST(LauncherCommandLine, CallsBatchFiles)
 	                dir,
 	                "--noautoexec",
 	                "-c",
-	                "CALL run.bat",
+	                "CALL .\\run.bat",
 	                "--exit",
 	                "--noconsole",
 	                dir}));
@@ -189,7 +197,7 @@ TEST(LauncherCommandLine, OnlyMountsProgramsItCantStartByName)
 	LaunchOptions options      = {};
 	options.exit_after_program = true;
 
-	for (const auto file_name : {"Commander Keen.exe", "@KEEN.EXE"}) {
+	for (const auto file_name : {"Commander Keen.exe", "KEEN%1.EXE"}) {
 		const Item item = {ItemKind::Program, GameDir / file_name};
 		EXPECT_EQ(BuildRunArgs(item, {}, options),
 		          (Args{"--working-dir", dir, "--noautoexec", dir}));

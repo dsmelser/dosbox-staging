@@ -49,8 +49,7 @@ bool IsDosFileName(std::string_view file_name);
 
 // Whether the program can be started with a '-c' command. Some valid DOS file
 // names get altered on the way: DOSBox turns single quotes in '-c' commands
-// into double quotes on Windows, '%' starts a batch variable, and the shell
-// drops a leading '@'.
+// into double quotes on Windows, and '%' starts a batch variable.
 bool CanStartByName(std::string_view file_name);
 
 // Folders set up for DOSBox (with a 'drives' folder or a local 'dosbox.conf')

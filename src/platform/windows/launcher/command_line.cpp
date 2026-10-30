@@ -88,7 +88,7 @@ bool IsDosFileName(const std::string_view file_name)
 
 bool CanStartByName(const std::string_view file_name)
 {
-	return IsDosFileName(file_name) && !file_name.starts_with('@') &&
+	return IsDosFileName(file_name) &&
 	       file_name.find_first_of("'%") == std::string_view::npos;
 }
 
@@ -142,11 +142,14 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 
 		const auto file_name = PathToUtf8(item.path.filename());
 		if (CanStartByName(file_name)) {
+			// Without the '.\' prefix, the shell would run its own
+			// DIR command for DIR.EXE, for example
+			const auto command = ".\\" + file_name;
+
 			const auto is_batch_file = (get_lower_extension(item.path) ==
 			                            ".bat");
 			args.emplace_back("-c");
-			args.emplace_back(is_batch_file ? "CALL " + file_name
-			                                : file_name);
+			args.emplace_back(is_batch_file ? "CALL " + command : command);
 
 			if (options.exit_after_program) {
 				args.emplace_back("--exit");
