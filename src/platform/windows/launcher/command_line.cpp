@@ -294,12 +294,28 @@ std::string QuotePowerShellArg(const std::string_view arg)
 
 std::string JoinPowerShellCommandLine(const std::vector<std::string>& args)
 {
+	if (args.empty()) {
+		return {};
+	}
+	const auto arguments = args | std::views::drop(1);
+
+	// Windows PowerShell 5.1 drops the quotes inside the arguments it passes
+	// to programs. Arguments with quotes therefore follow the stop-parsing
+	// token instead, which passes them on as they are, except for expanding
+	// '%NAME%' environment variables.
+	const auto has_quotes = std::ranges::any_of(arguments, [](const std::string& arg) {
+		return arg.find('"') != std::string::npos;
+	});
+
 	// The call operator makes PowerShell run a quoted program path rather
 	// than treat it as a string
-	std::string command_line = "&";
-	for (const auto& arg : args) {
+	auto command_line = "& " + QuotePowerShellArg(args.front());
+	if (has_quotes) {
+		command_line += " --%";
+	}
+	for (const auto& arg : arguments) {
 		command_line += ' ';
-		command_line += QuotePowerShellArg(arg);
+		command_line += has_quotes ? QuoteArg(arg) : QuotePowerShellArg(arg);
 	}
 	return command_line;
 }

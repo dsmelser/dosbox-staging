@@ -83,6 +83,15 @@ TEST(LauncherCommandLine, JoinsPowerShellCommandLines)
 	EXPECT_EQ(JoinPowerShellCommandLine(args),
 	          "& 'C:\\Program Files\\DOSBox Staging\\dosbox.exe' --set "
 	          "'cpu cpu_cycles=5000' --noautoexec");
+
+	// Arguments with quotes follow the stop-parsing token
+	const Args quoted_args = {"C:\\Program Files\\DOSBox Staging\\dosbox.exe",
+	                          "--set",
+	                          "capture capture_dir=\"C:\\My Captures\""};
+
+	EXPECT_EQ(JoinPowerShellCommandLine(quoted_args),
+	          "& 'C:\\Program Files\\DOSBox Staging\\dosbox.exe' --% --set "
+	          "\"capture capture_dir=\\\"C:\\My Captures\\\"\"");
 }
 
 TEST(LauncherCommandLine, RepairsExplorerDriveRootPaths)
