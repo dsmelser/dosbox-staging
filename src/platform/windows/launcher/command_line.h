@@ -47,6 +47,12 @@ std_fs::path GetWorkingDir(const Item& item);
 // The DOS shell can only run programs with valid 8.3 file names
 bool IsDosFileName(std::string_view file_name);
 
+// Whether the program can be started with a '-c' command. Some valid DOS file
+// names get altered on the way: DOSBox turns single quotes in '-c' commands
+// into double quotes on Windows, '%' starts a batch variable, and the shell
+// drops a leading '@'.
+bool CanStartByName(std::string_view file_name);
+
 // Folders set up for DOSBox (with a 'drives' folder or a local 'dosbox.conf')
 // mount their drives themselves
 bool ShouldMountFolderByDefault(const std_fs::path& folder);

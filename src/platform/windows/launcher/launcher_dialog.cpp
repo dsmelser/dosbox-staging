@@ -848,10 +848,15 @@ static void init_options(const DialogContext& context)
 	set_check(dialog, IDC_MOUNT_FOLDER, options.mount_folder_as_c);
 	set_check(dialog, IDC_SHOW_CONSOLE, options.show_console);
 
-	if (is_program && !IsDosFileName(PathToUtf8(item.path.filename()))) {
+	const auto file_name = PathToUtf8(item.path.filename());
+
+	if (is_program && !CanStartByName(file_name)) {
 		set_text(GetDlgItem(dialog, IDC_NOTE),
-		         "DOS can't start programs with long file names; DOSBox will "
-		         "mount the folder as C: so you can start it by its short name.");
+		         IsDosFileName(file_name)
+		                 ? "DOSBox would alter this program's name when starting it; "
+		                   "it will mount the folder as C: so you can start it yourself."
+		                 : "DOS can't start programs with long file names; DOSBox will "
+		                   "mount the folder as C: so you can start it by its short name.");
 		EnableWindow(GetDlgItem(dialog, IDC_EXIT_AFTER), FALSE);
 	}
 }

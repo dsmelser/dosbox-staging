@@ -65,6 +65,17 @@ TEST(LauncherCommandLine, RecognisesDosFileNames)
 	EXPECT_FALSE(IsDosFileName(""));
 }
 
+TEST(LauncherCommandLine, RecognisesNamesTheShellWouldAlter)
+{
+	EXPECT_TRUE(CanStartByName("GAME.EXE"));
+	EXPECT_TRUE(CanStartByName("GAME@2.EXE"));
+
+	EXPECT_FALSE(CanStartByName("LONGNAME1.EXE"));
+	EXPECT_FALSE(CanStartByName("A'B.EXE"));
+	EXPECT_FALSE(CanStartByName("A%B.EXE"));
+	EXPECT_FALSE(CanStartByName("@GAME.EXE"));
+}
+
 class LauncherFolder : public ::testing::Test {
 protected:
 	void SetUp() override
@@ -171,16 +182,18 @@ TEST(LauncherCommandLine, CallsBatchFiles)
 	                dir}));
 }
 
-TEST(LauncherCommandLine, OnlyMountsProgramsWithLongFileNames)
+TEST(LauncherCommandLine, OnlyMountsProgramsItCantStartByName)
 {
-	const Item item = {ItemKind::Program, GameDir / "Commander Keen.exe"};
-	const auto dir  = PathToUtf8(GameDir);
+	const auto dir = PathToUtf8(GameDir);
 
 	LaunchOptions options      = {};
 	options.exit_after_program = true;
 
-	EXPECT_EQ(BuildRunArgs(item, {}, options),
-	          (Args{"--working-dir", dir, "--noautoexec", dir}));
+	for (const auto file_name : {"Commander Keen.exe", "@KEEN.EXE"}) {
+		const Item item = {ItemKind::Program, GameDir / file_name};
+		EXPECT_EQ(BuildRunArgs(item, {}, options),
+		          (Args{"--working-dir", dir, "--noautoexec", dir}));
+	}
 }
 
 TEST(LauncherCommandLine, BuildsConfigArgs)

@@ -86,6 +86,12 @@ bool IsDosFileName(const std::string_view file_name)
 	       std::ranges::all_of(extension, is_dos_file_name_char);
 }
 
+bool CanStartByName(const std::string_view file_name)
+{
+	return IsDosFileName(file_name) && !file_name.starts_with('@') &&
+	       file_name.find_first_of("'%") == std::string_view::npos;
+}
+
 bool ShouldMountFolderByDefault(const std_fs::path& folder)
 {
 	std::error_code ec = {};
@@ -135,7 +141,7 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 		args.emplace_back("--noautoexec");
 
 		const auto file_name = PathToUtf8(item.path.filename());
-		if (IsDosFileName(file_name)) {
+		if (CanStartByName(file_name)) {
 			const auto is_batch_file = (get_lower_extension(item.path) ==
 			                            ".bat");
 			args.emplace_back("-c");
