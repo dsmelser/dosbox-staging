@@ -212,6 +212,9 @@ static void register_command_line_help_message()
 	        "  --list-shaders           List all available shaders and their paths.\n"
 	        "                           Shaders are to be used in the 'shader' config setting.\n"
 	        "\n"
+	        "  --list-settings-json     Print all configuration settings with their current\n"
+	        "                           values, allowed values and help texts as JSON.\n"
+	        "\n"
 	        "  --fullscreen             Start in fullscreen mode.\n"
 	        "\n"
 	        "  --lang <lang_file>       Start with the language specified in <lang_file>. If set to\n"
@@ -705,6 +708,15 @@ int main(int argc, char* argv[])
 		// Handle configuration settings passed with `--set` commands
 		// from the CLI.
 		handle_cli_set_commands(arguments->set);
+
+		// Handled after the `--set` commands so the printed values
+		// reflect them too.
+		if (arguments->list_settings_json) {
+			printf("%s\n", control->GetSettingsJson().c_str());
+
+			LOG_FlushEarlyWarningsToConsole();
+			return 0;
+		}
 
 		// After processing the configs and the `--set` commands from
 		// the CLI, we know whether we need to write a log (`log_mode`

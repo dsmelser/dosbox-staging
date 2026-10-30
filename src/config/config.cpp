@@ -15,6 +15,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "json/json.h"
+
 #include "config/config.h"
 #include "misc/ansi_code_markup.h"
 #include "misc/console.h"
@@ -107,6 +109,113 @@ bool Config::WriteConfig(const std_fs::path& path) const
 
 	fclose(outfile);
 	return true;
+}
+
+static std::string get_setting_type(const Property& prop)
+{
+	if (dynamic_cast<const PropMultiVal*>(&prop)) {
+		return "multival";
+	}
+	if (dynamic_cast<const PropPath*>(&prop)) {
+		return "path";
+	}
+	switch (prop.GetType()) {
+	case Value::V_HEX: return "hex";
+	case Value::V_BOOL: return "bool";
+	case Value::V_INT: return "int";
+	case Value::V_DOUBLE: return "double";
+	default: return "string";
+	}
+}
+
+static nlohmann::json setting_to_json(const Property& prop)
+{
+	const auto is_bool = (prop.GetType() == Value::V_BOOL);
+	const auto is_multival = (dynamic_cast<const PropMultiVal*>(&prop) != nullptr);
+
+	auto values = nlohmann::json::array();
+	if (is_bool) {
+		values.push_back("on");
+		values.push_back("off");
+	}
+
+	// The "%u" placeholder means any positive integer is accepted in
+	// addition to the listed values
+	auto accepts_any_number = false;
+
+	const auto deprecated_values = prop.GetDeprecatedValues();
+	for (const auto& value : prop.GetValues()) {
+		const auto value_str = value.ToString();
+		if (value_str == "%u") {
+			accepts_any_number = true;
+		} else if (!contains(deprecated_values, value)) {
+			values.push_back(value_str);
+		}
+	}
+
+	// Multi-value settings only report the allowed values of their first
+	// part, so the values are just suggestions for them
+	const auto is_restricted = is_bool || (prop.IsRestrictedValue() &&
+	                                       !accepts_any_number && !is_multival);
+
+	auto setting = nlohmann::json::object();
+
+	setting["name"]       = prop.propname;
+	setting["type"]       = get_setting_type(prop);
+	setting["value"]      = prop.GetValue().ToString();
+	setting["default"]    = prop.GetDefaultValue().ToString();
+	setting["values"]     = values;
+	setting["restricted"] = is_restricted;
+	setting["help"]       = format_str(prop.GetHelpRaw());
+
+	if (const auto prop_int = dynamic_cast<const PropInt*>(&prop);
+	    prop_int && prop_int->GetMin() != prop_int->GetMax()) {
+		setting["min"] = prop_int->GetMin();
+		setting["max"] = prop_int->GetMax();
+	}
+
+	return setting;
+}
+
+std::string Config::GetSettingsJson() const
+{
+	auto json_sections = nlohmann::json::array();
+
+	for (const auto section : sections) {
+		const auto section_prop = dynamic_cast<const SectionProp*>(section);
+		if (!section_prop) {
+			// Skip the [autoexec] section
+			continue;
+		}
+
+		auto settings = nlohmann::json::array();
+		for (const auto prop : *section_prop) {
+			if (!prop->IsDeprecated()) {
+				settings.push_back(setting_to_json(*prop));
+			}
+		}
+
+		auto json_section = nlohmann::json::object();
+
+		json_section["name"]     = section->GetName();
+		json_section["settings"] = settings;
+
+		json_sections.push_back(json_section);
+	}
+
+	auto json = nlohmann::json::object();
+
+	json["version"]      = DOSBOX_VERSION;
+	json["config_files"] = config_files;
+	json["sections"]     = json_sections;
+
+	constexpr auto Indent      = 2;
+	constexpr auto IndentChar  = ' ';
+	constexpr auto EnsureAscii = false;
+	return json.dump(Indent,
+	                 IndentChar,
+	                 EnsureAscii,
+	                 nlohmann::json::error_handler_t::replace);
 }
 
 SectionProp* Config::AddSection(const char* section_name)
@@ -575,6 +684,8 @@ void Config::ParseArguments()
 	arguments.list_layouts = cmdline->FindRemoveBoolArgument("list-layouts");
 	arguments.list_code_pages = cmdline->FindRemoveBoolArgument("list-code-pages");
 	arguments.list_shaders = cmdline->FindRemoveBoolArgument("list-shaders");
+	arguments.list_settings_json = cmdline->FindRemoveBoolArgument(
+	        "list-settings-json");
 	arguments.noconsole   = cmdline->FindRemoveBoolArgument("noconsole");
 	arguments.startmapper = cmdline->FindRemoveBoolArgument("startmapper");
 	arguments.exit        = cmdline->FindRemoveBoolArgument("exit");

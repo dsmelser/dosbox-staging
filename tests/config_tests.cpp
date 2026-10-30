@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include "json/json.h"
+
 namespace {
 
 struct StringCase {
@@ -168,6 +170,81 @@ TEST_F(ConfigParsing, RejectsLinesWithoutAnAssignment)
 
 	EXPECT_FALSE(section->HandleInputLine("text"));
 	EXPECT_EQ(section->GetString("text"), "default");
+}
+
+nlohmann::json find_setting(const nlohmann::json& settings, const std::string& name)
+{
+	for (const auto& setting : settings) {
+		if (setting.at("name") == name) {
+			return setting;
+		}
+	}
+	return {};
+}
+
+TEST_F(ConfigParsing, SettingsJsonDescribesSettings)
+{
+	const auto mode = section->AddString("json_test_mode", WhenIdle, "fast");
+	mode->SetValues({"fast", "slow", "turbo"});
+	mode->SetDeprecatedWithAlternateValue("turbo", "fast");
+
+	const auto amount = section->AddInt("json_test_amount", WhenIdle, 10);
+	amount->SetMinMax(1, 100);
+
+	section->AddBool("json_test_enabled", WhenIdle, true);
+	section->AddString("json_test_text", WhenIdle, "");
+	section->AddPath("json_test_path", WhenIdle, "");
+	section->AddString("json_test_retired", Property::Changeable::Deprecated, "");
+
+	ASSERT_TRUE(section->HandleInputLine("json_test_amount = 42"));
+
+	const auto json = nlohmann::json::parse(control->GetSettingsJson(),
+	                                        nullptr,
+	                                        false);
+	ASSERT_FALSE(json.is_discarded());
+	EXPECT_TRUE(json.at("version").is_string());
+	EXPECT_TRUE(json.at("config_files").is_array());
+
+	const auto& sections = json.at("sections");
+	ASSERT_EQ(sections.size(), 1u);
+	EXPECT_EQ(sections[0].at("name"), "parsing");
+
+	const auto& settings = sections[0].at("settings");
+	EXPECT_EQ(settings.size(), 5u);
+	EXPECT_TRUE(find_setting(settings, "json_test_retired").is_null());
+
+	const auto mode_json = find_setting(settings, "json_test_mode");
+	EXPECT_EQ(mode_json.at("type"), "string");
+	EXPECT_EQ(mode_json.at("value"), "fast");
+	EXPECT_EQ(mode_json.at("default"), "fast");
+	EXPECT_EQ(mode_json.at("values"), nlohmann::json({"fast", "slow"}));
+	EXPECT_EQ(mode_json.at("restricted"), true);
+
+	// Help texts come from the message system, which is stubbed out in the
+	// tests
+	EXPECT_TRUE(mode_json.at("help").is_string());
+
+	const auto amount_json = find_setting(settings, "json_test_amount");
+	EXPECT_EQ(amount_json.at("type"), "int");
+	EXPECT_EQ(amount_json.at("value"), "42");
+	EXPECT_EQ(amount_json.at("default"), "10");
+	EXPECT_EQ(amount_json.at("min"), 1);
+	EXPECT_EQ(amount_json.at("max"), 100);
+	EXPECT_EQ(amount_json.at("restricted"), false);
+
+	const auto enabled_json = find_setting(settings, "json_test_enabled");
+	EXPECT_EQ(enabled_json.at("type"), "bool");
+	EXPECT_EQ(enabled_json.at("value"), "on");
+	EXPECT_EQ(enabled_json.at("values"), nlohmann::json({"on", "off"}));
+	EXPECT_EQ(enabled_json.at("restricted"), true);
+
+	const auto text_json = find_setting(settings, "json_test_text");
+	EXPECT_EQ(text_json.at("type"), "string");
+	EXPECT_TRUE(text_json.at("values").empty());
+	EXPECT_EQ(text_json.at("restricted"), false);
+	EXPECT_FALSE(text_json.contains("min"));
+
+	EXPECT_EQ(find_setting(settings, "json_test_path").at("type"), "path");
 }
 
 } // namespace

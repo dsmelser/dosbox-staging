@@ -34,6 +34,7 @@ struct CommandLineArguments {
 	bool list_layouts    = false;
 	bool list_code_pages = false;
 	bool list_shaders    = false;
+	bool list_settings_json = false;
 	bool version         = false;
 	bool help            = false;
 	bool eraseconf       = false;
@@ -128,6 +129,11 @@ public:
 	void Init() const;
 
 	bool WriteConfig(const std_fs::path& path) const;
+
+	// Returns all non-deprecated settings with their current values,
+	// default values, allowed values and help texts as a JSON document.
+	std::string GetSettingsJson() const;
+
 	bool ParseConfigFile(const std::string& type,
 	                     const std::string& config_file_name);
 

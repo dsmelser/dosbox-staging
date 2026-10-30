@@ -61,6 +61,7 @@ target_link_libraries(dosbox_tests PRIVATE
     clap
     GTest::gmock_main
     dosboxcommon
+    json
     SDL3::Headers
 )
 
