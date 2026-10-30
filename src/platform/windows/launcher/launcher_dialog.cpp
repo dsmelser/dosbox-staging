@@ -73,6 +73,15 @@ struct FontDeleter {
 
 using UniqueFont = std::unique_ptr<std::remove_pointer_t<HFONT>, FontDeleter>;
 
+struct MenuDeleter {
+	void operator()(const HMENU menu) const
+	{
+		DestroyMenu(menu);
+	}
+};
+
+using UniqueMenu = std::unique_ptr<std::remove_pointer_t<HMENU>, MenuDeleter>;
+
 struct DialogContext {
 	DialogContext(const HINSTANCE app_instance, LauncherState& launcher_state)
 	        : instance(app_instance),
@@ -301,7 +310,8 @@ static void apply_value(DialogContext& context, const size_t index,
 	SendMessageW(context.dialog, WmOverridesChanged, static_cast<WPARAM>(source), 0);
 }
 
-static std::string build_command_line(const DialogContext& context)
+// The DOSBox executable followed by the arguments of the run
+static std::vector<std::string> build_args(const DialogContext& context)
 {
 	const auto& state = context.state;
 
@@ -312,7 +322,12 @@ static std::string build_command_line(const DialogContext& context)
 
 	args.insert(args.begin(), PathToUtf8(state.dosbox_exe));
 
-	return JoinCommandLine(args);
+	return args;
+}
+
+static std::string build_command_line(const DialogContext& context)
+{
+	return JoinCommandLine(build_args(context));
 }
 
 static void update_command_line(const DialogContext& context)
@@ -993,6 +1008,36 @@ static void copy_to_clipboard(const HWND owner, const std::string& text)
 	CloseClipboard();
 }
 
+// The menu of the Copy split button; one command line can't work in both
+// shells, as PowerShell needs the '&' call operator to run a quoted path
+static void show_copy_menu(const DialogContext& context)
+{
+	constexpr auto CopyForCommandPrompt = 1;
+	constexpr auto CopyForPowerShell    = 2;
+
+	const auto menu = UniqueMenu(CreatePopupMenu());
+	AppendMenuW(menu.get(), MF_STRING, CopyForCommandPrompt, L"Copy for &Command Prompt");
+	AppendMenuW(menu.get(), MF_STRING, CopyForPowerShell, L"Copy for &PowerShell");
+
+	RECT button_rect = {};
+	GetWindowRect(GetDlgItem(context.dialog, IDC_COPY), &button_rect);
+
+	const auto choice = TrackPopupMenu(menu.get(),
+	                                   TPM_RETURNCMD | TPM_RIGHTALIGN | TPM_TOPALIGN,
+	                                   button_rect.right,
+	                                   button_rect.bottom,
+	                                   0,
+	                                   context.dialog,
+	                                   nullptr);
+
+	if (choice == CopyForCommandPrompt) {
+		copy_to_clipboard(context.dialog, build_command_line(context));
+	} else if (choice == CopyForPowerShell) {
+		copy_to_clipboard(context.dialog,
+		                  JoinPowerShellCommandLine(build_args(context)));
+	}
+}
+
 static bool validate_overrides(const DialogContext& context)
 {
 	const auto& settings = context.state.schema.settings;
@@ -1095,6 +1140,10 @@ static INT_PTR CALLBACK main_dialog_proc(const HWND dialog, const UINT message,
 		if (header->hwndFrom == context->tabs &&
 		    header->code == TCN_SELCHANGE) {
 			show_page(*context, TabCtrl_GetCurSel(context->tabs));
+			return TRUE;
+		}
+		if (header->idFrom == IDC_COPY && header->code == BCN_DROPDOWN) {
+			show_copy_menu(*context);
 			return TRUE;
 		}
 		return FALSE;

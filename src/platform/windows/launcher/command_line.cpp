@@ -226,4 +226,42 @@ std::string JoinCommandLine(const std::vector<std::string>& args)
 	return command_line;
 }
 
+std::string QuotePowerShellArg(const std::string_view arg)
+{
+	const auto is_plain_char = [](const char c) {
+		constexpr std::string_view PlainSpecialChars = "-_.:\\/=";
+
+		return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+		       (c >= '0' && c <= '9') ||
+		       PlainSpecialChars.find(c) != std::string_view::npos;
+	};
+	if (!arg.empty() && std::ranges::all_of(arg, is_plain_char)) {
+		return std::string(arg);
+	}
+
+	std::string quoted = "'";
+	for (const auto c : arg) {
+		// A single quote is escaped by doubling it
+		if (c == '\'') {
+			quoted += '\'';
+		}
+		quoted += c;
+	}
+	quoted += '\'';
+
+	return quoted;
+}
+
+std::string JoinPowerShellCommandLine(const std::vector<std::string>& args)
+{
+	// The call operator makes PowerShell run a quoted program path rather
+	// than treat it as a string
+	std::string command_line = "&";
+	for (const auto& arg : args) {
+		command_line += ' ';
+		command_line += QuotePowerShellArg(arg);
+	}
+	return command_line;
+}
+
 } // namespace Launcher

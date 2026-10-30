@@ -70,6 +70,13 @@ std::string QuoteArg(std::string_view arg);
 
 std::string JoinCommandLine(const std::vector<std::string>& args);
 
+// Quotes an argument for PowerShell if needed; single quotes also keep '$' and
+// '`' from being interpreted
+std::string QuotePowerShellArg(std::string_view arg);
+
+// A PowerShell command running the program in the first argument
+std::string JoinPowerShellCommandLine(const std::vector<std::string>& args);
+
 } // namespace Launcher
 
 #endif

@@ -49,6 +49,28 @@ TEST(LauncherCommandLine, JoinsQuotedArguments)
 	          "\"cpu cpu_cycles=5000\" --noautoexec");
 }
 
+TEST(LauncherCommandLine, QuotesArgumentsForPowerShell)
+{
+	EXPECT_EQ(QuotePowerShellArg("--noautoexec"), "--noautoexec");
+	EXPECT_EQ(QuotePowerShellArg(".\\KEEN1.EXE"), ".\\KEEN1.EXE");
+	EXPECT_EQ(QuotePowerShellArg("C:\\My Games"), "'C:\\My Games'");
+	EXPECT_EQ(QuotePowerShellArg("C:\\$Games"), "'C:\\$Games'");
+	EXPECT_EQ(QuotePowerShellArg("C:\\Mike's"), "'C:\\Mike''s'");
+	EXPECT_EQ(QuotePowerShellArg(""), "''");
+}
+
+TEST(LauncherCommandLine, JoinsPowerShellCommandLines)
+{
+	const Args args = {"C:\\Program Files\\DOSBox Staging\\dosbox.exe",
+	                   "--set",
+	                   "cpu cpu_cycles=5000",
+	                   "--noautoexec"};
+
+	EXPECT_EQ(JoinPowerShellCommandLine(args),
+	          "& 'C:\\Program Files\\DOSBox Staging\\dosbox.exe' --set "
+	          "'cpu cpu_cycles=5000' --noautoexec");
+}
+
 TEST(LauncherCommandLine, RepairsExplorerDriveRootPaths)
 {
 	EXPECT_EQ(RepairExplorerPath("D:\""), "D:\\");
