@@ -41,6 +41,10 @@ add_executable(dosbox_tests
     multi_prefix_tests.cpp
 )
 
+if (DOSBOX_PLATFORM_WINDOWS)
+    target_sources(dosbox_tests PRIVATE launcher_tests.cpp)
+endif()
+
 # Disable some warnings for deliberately flawed test cases
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT MSVC)
     target_compile_options(dosbox_tests PRIVATE

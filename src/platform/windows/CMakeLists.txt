@@ -8,3 +8,5 @@ target_sources(dosbox PRIVATE
 if (OPT_TESTS)
     target_sources(dosbox_tests PRIVATE dosbox.manifest)
 endif()
+
+add_subdirectory(launcher)
