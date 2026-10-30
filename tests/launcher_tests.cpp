@@ -350,6 +350,15 @@ TEST_F(LauncherSchema, OnlyOverridesChangedValues)
 	EXPECT_EQ(MakeOverride(fullscreen(), "true"), "on");
 }
 
+TEST(LauncherOverrides, KeepsCaseChangesToFreeFormValues)
+{
+	Setting titlebar = {};
+	titlebar.value   = "program=(doom)";
+
+	EXPECT_FALSE(MakeOverride(titlebar, "program=(doom)"));
+	EXPECT_EQ(MakeOverride(titlebar, "program=(DOOM)"), "program=(DOOM)");
+}
+
 TEST_F(LauncherSchema, CollectsOverrides)
 {
 	std::vector<std::optional<std::string>> overrides(schema.settings.size());

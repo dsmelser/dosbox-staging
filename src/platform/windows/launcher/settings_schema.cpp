@@ -265,8 +265,10 @@ std::optional<std::string> MakeOverride(const Setting& setting,
 {
 	auto normalised = NormaliseValue(setting, value);
 
+	// Normalising unifies the spelling of booleans and listed values, while
+	// case matters in free-form values like window titles
 	const auto current = NormaliseValue(setting, setting.value);
-	if (ToLowerAscii(normalised) == ToLowerAscii(current)) {
+	if (normalised == current) {
 		return {};
 	}
 	return normalised;
