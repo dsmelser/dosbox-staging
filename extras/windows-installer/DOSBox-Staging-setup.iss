@@ -5,6 +5,8 @@
 #define DOSBoxAppURL "https://www.dosbox-staging.org/"
 #define DOSBoxAppExeName "dosbox.exe"
 #define DOSBoxAppExeDebuggerName "dosbox_with_debugger.exe"
+#define DOSBoxAppExeLauncherName "dosbox_launcher.exe"
+#define DOSBoxAppLauncherVerb "dosbox-staging-launcher"
 #define DOSBoxAppBuildDate GetDateTimeString('yyyymmdd_hhnnss', '', '')
 
 [Setup]
@@ -64,12 +66,14 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 
 [Tasks]
 Name: "contextmenu"; Description: "Add ""Run/Open with {#DOSBoxAppName}"" context menu for Windows Explorer"
+Name: "launchermenu"; Description: "Add ""Run/Open with {#DOSBoxAppName} (choose settings)..."" context menu for DOS programs, folders and .conf files"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "program\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#DOSBoxAppExeName}"; DestDir: "{app}"; DestName: "{#DOSBoxAppExeName}"; Flags: ignoreversion
 Source: "{#DOSBoxAppExeDebuggerName}"; DestDir: "{app}"; DestName: "{#DOSBoxAppExeDebuggerName}"; Flags: ignoreversion
+Source: "{#DOSBoxAppExeLauncherName}"; DestDir: "{app}"; DestName: "{#DOSBoxAppExeLauncherName}"; Flags: ignoreversion
 Source: "{#DOSBoxAppInternal}.ico"; DestDir: "{app}"; DestName: "{#DOSBoxAppInternal}.ico"; Flags: ignoreversion
 
 [Icons]
@@ -115,6 +119,44 @@ Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\Run with 
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\Run with {#DOSBoxAppName}\command"; ValueType: none; Flags: deletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\Run with {#DOSBoxAppName}"; ValueType: none; Flags: deletekey
 Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\Run with {#DOSBoxAppName}\command"; ValueType: none; Flags: deletekey
+
+; Add "choose settings" context menu entries; they start DOSBox through the
+; launcher, which asks for setting overrides for that run first
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.exe\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Run with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.exe\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.exe\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Single"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.exe\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%1"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Run with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Single"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%1"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Run with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Single"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%1"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.conf\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Open with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.conf\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.conf\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Single"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.conf\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%1"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\Directory\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Open with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Single"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%V"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: ""; ValueData: "Open with {#DOSBoxAppName} (choose settings)..."; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\{#DOSBoxAppLauncherVerb}"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"",0"; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\{#DOSBoxAppLauncherVerb}\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#DOSBoxAppExeLauncherName}"" ""%V"""; Check: WizardIsTaskSelected('launchermenu'); Flags: uninsdeletekey
+
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.exe\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.com\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.bat\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.conf\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\{#DOSBoxAppLauncherVerb}"; ValueType: none; Check: not WizardIsTaskSelected('launchermenu'); Flags: deletekey
 
 [UninstallDelete]
 Type: files; Name: "{app}\stderr.txt"

@@ -187,6 +187,7 @@ pkg_windows()
 
     # Copy binary
     cp "${build_dir}/dosbox.exe"  "${pkg_dir}/dosbox.exe"
+    cp "${build_dir}/dosbox_launcher.exe"  "${pkg_dir}/dosbox_launcher.exe"
 
     # Copy MSVC C++ redistributable files
     cp docs/vc_redist.txt         "${pkg_dir}/doc/vc_redist.txt"
