@@ -434,8 +434,12 @@ static INT_PTR CALLBACK common_page_proc(const HWND page, const UINT message,
 		EnableThemeDialogTexture(page, ETDT_ENABLETAB);
 		create_common_controls(context);
 
-		set_text(GetDlgItem(page, IDC_COMMON_HELP),
-		         "Select a setting to see its description.");
+		// The help text was created first; it comes last when tabbing
+		// through the controls
+		const auto help = GetDlgItem(page, IDC_COMMON_HELP);
+		SetWindowPos(help, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+		set_text(help, "Select a setting to see its description.");
 
 		// Don't move the focus
 		return FALSE;
