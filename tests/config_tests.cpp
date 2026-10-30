@@ -196,6 +196,10 @@ TEST_F(ConfigParsing, SettingsJsonDescribesSettings)
 	section->AddPath("json_test_path", WhenIdle, "");
 	section->AddString("json_test_retired", Property::Changeable::Deprecated, "");
 
+	const auto port = section->AddMultiValRemain("json_test_port", WhenIdle, " ");
+	port->GetSection()->AddString("type", WhenIdle, "dummy");
+	port->GetSection()->AddString("parameters", WhenIdle, "irq:4");
+
 	ASSERT_TRUE(section->HandleInputLine("json_test_amount = 42"));
 
 	const auto json = nlohmann::json::parse(control->GetSettingsJson(),
@@ -210,7 +214,7 @@ TEST_F(ConfigParsing, SettingsJsonDescribesSettings)
 	EXPECT_EQ(sections[0].at("name"), "parsing");
 
 	const auto& settings = sections[0].at("settings");
-	EXPECT_EQ(settings.size(), 5u);
+	EXPECT_EQ(settings.size(), 6u);
 	EXPECT_TRUE(find_setting(settings, "json_test_retired").is_null());
 
 	const auto mode_json = find_setting(settings, "json_test_mode");
@@ -245,6 +249,11 @@ TEST_F(ConfigParsing, SettingsJsonDescribesSettings)
 	EXPECT_FALSE(text_json.contains("min"));
 
 	EXPECT_EQ(find_setting(settings, "json_test_path").at("type"), "path");
+
+	// Only the parts of multi-value settings have default values
+	const auto port_json = find_setting(settings, "json_test_port");
+	EXPECT_EQ(port_json.at("type"), "multival");
+	EXPECT_EQ(port_json.at("default"), "dummy irq:4");
 }
 
 } // namespace

@@ -522,6 +522,10 @@ public:
 	bool SetValue(const std::string& input) override;
 
 	const std::vector<Value>& GetValues() const override;
+
+	// The default values of the sub properties, joined by the separator;
+	// the multi-value property itself has no default value
+	std::string GetCombinedDefaultValue() const;
 };
 
 class PropMultiValRemain final : public PropMultiVal {

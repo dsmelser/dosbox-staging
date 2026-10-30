@@ -128,6 +128,14 @@ static std::string get_setting_type(const Property& prop)
 	}
 }
 
+static std::string get_default_value(const Property& prop)
+{
+	if (const auto multival = dynamic_cast<const PropMultiVal*>(&prop)) {
+		return multival->GetCombinedDefaultValue();
+	}
+	return prop.GetDefaultValue().ToString();
+}
+
 static nlohmann::json setting_to_json(const Property& prop)
 {
 	const auto is_bool = (prop.GetType() == Value::V_BOOL);
@@ -163,7 +171,7 @@ static nlohmann::json setting_to_json(const Property& prop)
 	setting["name"]       = prop.propname;
 	setting["type"]       = get_setting_type(prop);
 	setting["value"]      = prop.GetValue().ToString();
-	setting["default"]    = prop.GetDefaultValue().ToString();
+	setting["default"]    = get_default_value(prop);
 	setting["values"]     = values;
 	setting["restricted"] = is_restricted;
 	setting["help"]       = format_str(prop.GetHelpRaw());

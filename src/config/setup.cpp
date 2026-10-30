@@ -595,11 +595,11 @@ bool PropHex::SetValue(const std::string& input)
 	return ValidateValue(val);
 }
 
-void PropMultiVal::MakeDefaultValue()
+std::string PropMultiVal::GetCombinedDefaultValue() const
 {
 	Property* p = section->GetProperty(0);
 	if (!p) {
-		return;
+		return {};
 	}
 
 	int i = 1;
@@ -614,8 +614,16 @@ void PropMultiVal::MakeDefaultValue()
 		result += separator;
 		result += props;
 	}
+	return result;
+}
 
-	Value val(result, Value::V_STRING);
+void PropMultiVal::MakeDefaultValue()
+{
+	if (!section->GetProperty(0)) {
+		return;
+	}
+
+	Value val(GetCombinedDefaultValue(), Value::V_STRING);
 	ValidateValue(val);
 }
 
