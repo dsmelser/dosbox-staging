@@ -70,6 +70,11 @@ std::string QuoteArg(std::string_view arg);
 
 std::string JoinCommandLine(const std::vector<std::string>& args);
 
+// A command line for pasting into a Command Prompt. The arguments also get the
+// characters cmd.exe interprets escaped with '^', so quotes and '%' signs in
+// them can't start other commands or expand variables.
+std::string JoinCmdCommandLine(const std::vector<std::string>& args);
+
 // Quotes an argument for PowerShell if needed; single quotes also keep '$' and
 // '`' from being interpreted
 std::string QuotePowerShellArg(std::string_view arg);

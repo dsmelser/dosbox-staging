@@ -1008,8 +1008,8 @@ static void copy_to_clipboard(const HWND owner, const std::string& text)
 	CloseClipboard();
 }
 
-// The menu of the Copy split button; one command line can't work in both
-// shells, as PowerShell needs the '&' call operator to run a quoted path
+// The menu of the Copy split button. Clicking the button copies the command
+// line as shown, which works in shortcuts; the shells need their own escaping.
 static void show_copy_menu(const DialogContext& context)
 {
 	constexpr auto CopyForCommandPrompt = 1;
@@ -1031,7 +1031,8 @@ static void show_copy_menu(const DialogContext& context)
 	                                   nullptr);
 
 	if (choice == CopyForCommandPrompt) {
-		copy_to_clipboard(context.dialog, build_command_line(context));
+		copy_to_clipboard(context.dialog,
+		                  JoinCmdCommandLine(build_args(context)));
 	} else if (choice == CopyForPowerShell) {
 		copy_to_clipboard(context.dialog,
 		                  JoinPowerShellCommandLine(build_args(context)));

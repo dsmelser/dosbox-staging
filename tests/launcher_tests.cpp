@@ -49,6 +49,20 @@ TEST(LauncherCommandLine, JoinsQuotedArguments)
 	          "\"cpu cpu_cycles=5000\" --noautoexec");
 }
 
+TEST(LauncherCommandLine, JoinsCommandPromptCommandLines)
+{
+	const Args args = {"C:\\Program Files\\100%Fun\\dosbox.exe",
+	                   "--set",
+	                   "sdl window_titlebar=\"&calc&\"",
+	                   "--working-dir",
+	                   "C:\\Games\\%PATH%"};
+
+	EXPECT_EQ(JoinCmdCommandLine(args),
+	          "\"C:\\Program Files\\100\"^%\"Fun\\dosbox.exe\" --set "
+	          "^\"sdl window_titlebar=\\^\"^&calc^&\\^\"^\" --working-dir "
+	          "C:\\Games\\^%PATH^%");
+}
+
 TEST(LauncherCommandLine, QuotesArgumentsForPowerShell)
 {
 	EXPECT_EQ(QuotePowerShellArg("--noautoexec"), "--noautoexec");

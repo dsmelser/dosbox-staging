@@ -4,6 +4,7 @@
 #include "platform/windows/launcher/command_line.h"
 
 #include <algorithm>
+#include <ranges>
 #include <system_error>
 
 #include "utils/checks.h"
@@ -222,6 +223,36 @@ std::string JoinCommandLine(const std::vector<std::string>& args)
 			command_line += ' ';
 		}
 		command_line += QuoteArg(arg);
+	}
+	return command_line;
+}
+
+std::string JoinCmdCommandLine(const std::vector<std::string>& args)
+{
+	if (args.empty()) {
+		return {};
+	}
+
+	// cmd.exe only finds a program in a path with spaces if its quotes
+	// aren't escaped, so the '%' signs of the path get escaped outside of
+	// them instead
+	std::string command_line = "\"";
+	for (const auto c : args.front()) {
+		command_line += (c == '%') ? std::string("\"^%\"")
+		                           : std::string(1, c);
+	}
+	command_line += '"';
+
+	constexpr std::string_view SpecialChars = "()%!^\"<>&|";
+
+	for (const auto& arg : args | std::views::drop(1)) {
+		command_line += ' ';
+		for (const auto c : QuoteArg(arg)) {
+			if (SpecialChars.find(c) != std::string_view::npos) {
+				command_line += '^';
+			}
+			command_line += c;
+		}
 	}
 	return command_line;
 }
