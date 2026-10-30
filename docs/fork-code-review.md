@@ -59,7 +59,7 @@ Adjust the deleted paths to the files you want reviewed.
   branches (for example `review-base*`), select **Automatically request
   Copilot code review** and optionally **Review new pushes** and **Review
   draft pull requests**. This fork has such a ruleset for `review-base*`,
-  without the optional settings.
+  with **Review new pushes** on.
 - **Automatically, for every pull request you open:** Copilot settings →
   Code review → **Automatic Copilot code review**.
 
