@@ -64,7 +64,8 @@ std::vector<std::string> BuildRunArgs(const Item& item,
                                       const std::vector<SettingOverride>& overrides,
                                       const LaunchOptions& options);
 
-// Quotes an argument according to the parsing rules of CommandLineToArgvW()
+// Quotes an argument according to the parsing rules of CommandLineToArgvW(),
+// and if it contains characters cmd.exe would interpret
 std::string QuoteArg(std::string_view arg);
 
 std::string JoinCommandLine(const std::vector<std::string>& args);

@@ -179,7 +179,11 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 
 std::string QuoteArg(const std::string_view arg)
 {
-	const auto needs_quotes = arg.empty() || arg.find_first_of(" \t\n\v\"") !=
+	// Besides whitespace and quotes, this covers the characters cmd.exe
+	// would interpret, so the command line also works in a command prompt
+	constexpr std::string_view SpecialChars = " \t\n\v\"&<>^|";
+
+	const auto needs_quotes = arg.empty() || arg.find_first_of(SpecialChars) !=
 	                                                 std::string_view::npos;
 	if (!needs_quotes) {
 		return std::string(arg);

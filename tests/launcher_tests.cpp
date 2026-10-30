@@ -31,6 +31,12 @@ TEST(LauncherCommandLine, QuotesArgumentsLikeCommandLineToArgvW)
 	EXPECT_EQ(QuoteArg("a\\\"b"), "\"a\\\\\\\"b\"");
 }
 
+TEST(LauncherCommandLine, QuotesCharactersCmdWouldInterpret)
+{
+	EXPECT_EQ(QuoteArg("C:\\Tom&Jerry"), "\"C:\\Tom&Jerry\"");
+	EXPECT_EQ(QuoteArg("A^B<C>D|E"), "\"A^B<C>D|E\"");
+}
+
 TEST(LauncherCommandLine, JoinsQuotedArguments)
 {
 	const Args args = {"C:\\Program Files\\DOSBox Staging\\dosbox.exe",
