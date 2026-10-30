@@ -53,8 +53,8 @@ bool IsDosFileName(std::string_view file_name);
 bool CanStartByName(std::string_view file_name);
 
 // Folders set up for DOSBox mount their drives themselves: those with a local
-// 'dosbox.conf', or with drive folders DOSBox mounts automatically ('drives\c'
-// and the like, if the 'automount' setting is on)
+// 'dosbox.conf', or with a 'drives\c' folder DOSBox mounts as C: (if the
+// 'automount' setting is on)
 bool ShouldMountFolderByDefault(const std_fs::path& folder, bool automount);
 
 // Makes DOSBox load the same configuration files as the actual run; also used
