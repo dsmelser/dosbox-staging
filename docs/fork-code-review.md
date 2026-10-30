@@ -58,15 +58,17 @@ Adjust the deleted paths to the files you want reviewed.
   ruleset → New branch ruleset. Set Enforcement to Active, add the target
   branches (for example `review-base*`), select **Automatically request
   Copilot code review** and optionally **Review new pushes** and **Review
-  draft pull requests**.
+  draft pull requests**. This fork has such a ruleset for `review-base*`,
+  without the optional settings.
 - **Automatically, for every pull request you open:** Copilot settings →
   Code review → **Automatic Copilot code review**.
 
 Copilot reads review guidance from the pull request's head branch
 (`copilot-instructions.md`, `*.instructions.md`, `AGENTS.md`, `REVIEW.md`,
 `CLAUDE.md`). The project's coding rules are in `.claude/rules/`, which
-Copilot doesn't read; add a `.github/copilot-instructions.md` that points to
-them if the review should follow the project's conventions.
+Copilot doesn't read, and Copilot doesn't follow links, so
+`.github/copilot-instructions.md` holds a copy of the C++ rules from
+`.claude/rules/code-style.md`. Update both together.
 
 ## 4. Handle the feedback and clean up
 
