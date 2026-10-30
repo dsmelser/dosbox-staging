@@ -128,7 +128,7 @@ TEST_F(LauncherFolder, BuildsFolderArgs)
 
 	LaunchOptions options = {};
 	EXPECT_EQ(BuildRunArgs(item, {machine_override}, options),
-	          (Args{"--working-dir", dir, "--set", "dosbox machine=ega", dir}));
+	          (Args{"--working-dir", dir, "--set", "dosbox machine=ega", "."}));
 
 	options.mount_folder_as_c = false;
 	options.show_console      = false;
@@ -158,7 +158,18 @@ TEST(LauncherCommandLine, BuildsProgramArgs)
 	                "--noautoexec",
 	                "-c",
 	                ".\\KEEN1.EXE",
-	                dir}));
+	                "."}));
+}
+
+TEST(LauncherCommandLine, MountsFoldersWithPercentSigns)
+{
+	// AUTOEXEC.BAT would turn an absolute "C:\Games\100%Fun" into
+	// "C:\Games\100Fun", so only the working dir holds the path
+	const auto dir  = std_fs::path("C:\\Games\\100%Fun");
+	const Item item = {ItemKind::Program, dir / "FUN.EXE"};
+
+	EXPECT_EQ(BuildRunArgs(item, {}, {}),
+	          (Args{"--working-dir", PathToUtf8(dir), "--noautoexec", "-c", ".\\FUN.EXE", "."}));
 }
 
 TEST(LauncherCommandLine, StopsShellCommandsFromShadowingPrograms)
@@ -167,7 +178,7 @@ TEST(LauncherCommandLine, StopsShellCommandsFromShadowingPrograms)
 	const auto dir  = PathToUtf8(GameDir);
 
 	EXPECT_EQ(BuildRunArgs(item, {}, {}),
-	          (Args{"--working-dir", dir, "--noautoexec", "-c", ".\\DIR.EXE", dir}));
+	          (Args{"--working-dir", dir, "--noautoexec", "-c", ".\\DIR.EXE", "."}));
 }
 
 TEST(LauncherCommandLine, CallsBatchFiles)
@@ -187,7 +198,7 @@ TEST(LauncherCommandLine, CallsBatchFiles)
 	                "CALL .\\run.bat",
 	                "--exit",
 	                "--noconsole",
-	                dir}));
+	                "."}));
 }
 
 TEST(LauncherCommandLine, OnlyMountsProgramsItCantStartByName)
@@ -200,7 +211,7 @@ TEST(LauncherCommandLine, OnlyMountsProgramsItCantStartByName)
 	for (const auto file_name : {"Commander Keen.exe", "KEEN%1.EXE"}) {
 		const Item item = {ItemKind::Program, GameDir / file_name};
 		EXPECT_EQ(BuildRunArgs(item, {}, options),
-		          (Args{"--working-dir", dir, "--noautoexec", dir}));
+		          (Args{"--working-dir", dir, "--noautoexec", "."}));
 	}
 }
 

@@ -4,7 +4,6 @@
 #include "platform/windows/launcher/command_line.h"
 
 #include <algorithm>
-#include <optional>
 #include <system_error>
 
 #include "utils/checks.h"
@@ -130,14 +129,13 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 		                  setting.value);
 	}
 
-	// The PATH argument must come last
-	std::optional<std::string> path_arg = {};
+	auto mount_working_dir = false;
 
 	switch (item.kind) {
 	case ItemKind::Program: {
 		// Skipping the [autoexec] sections makes the program the first
-		// DOS command; the folder given as PATH gets mounted as C:
-		// before the '-c' commands run.
+		// DOS command; the working dir gets mounted as C: before the
+		// '-c' commands run.
 		args.emplace_back("--noautoexec");
 
 		const auto file_name = PathToUtf8(item.path.filename());
@@ -155,13 +153,11 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 				args.emplace_back("--exit");
 			}
 		}
-		path_arg = PathToUtf8(GetWorkingDir(item));
+		mount_working_dir = true;
 		break;
 	}
 	case ItemKind::Folder:
-		if (options.mount_folder_as_c) {
-			path_arg = PathToUtf8(item.path);
-		}
+		mount_working_dir = options.mount_folder_as_c;
 		break;
 
 	case ItemKind::Config:
@@ -171,8 +167,12 @@ std::vector<std::string> BuildRunArgs(const Item& item,
 	if (!options.show_console) {
 		args.emplace_back("--noconsole");
 	}
-	if (path_arg) {
-		args.push_back(*path_arg);
+
+	// The folder to mount must come last. It's given relative to the
+	// working dir because DOSBox mounts it with a command in AUTOEXEC.BAT,
+	// where the shell would expand '%' signs in an absolute path.
+	if (mount_working_dir) {
+		args.emplace_back(".");
 	}
 	return args;
 }
