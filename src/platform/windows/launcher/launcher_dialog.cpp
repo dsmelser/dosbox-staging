@@ -52,6 +52,10 @@ constexpr auto DialogTitle = L"Run with DOSBox Staging";
 // page the change came from
 constexpr UINT WmOverridesChanged = WM_APP + 1;
 
+// Posted to the main dialog on DPI changes, so the parts the dialog manager
+// doesn't know about get rescaled after it has rescaled the rest
+constexpr UINT WmDpiChanged = WM_APP + 2;
+
 enum class Page : WPARAM { None, Common, AllSettings };
 
 struct CommonControl {
@@ -88,6 +92,9 @@ struct DialogContext {
 	// The help texts are formatted for fixed-width fonts
 	UniqueFont help_font                   = {};
 	std::optional<size_t> selected_setting = {};
+
+	// The DPI the settings list's columns are sized for
+	int dpi = 0;
 
 	// Set while controls get updated programmatically, so the resulting
 	// change notifications are ignored
@@ -801,24 +808,74 @@ static void stretch_to_bottom(const HWND page, const int id)
 	             SWP_NOMOVE | SWP_NOZORDER);
 }
 
+// Loads the icons in the sizes for the DPI of the dialog's monitor
 static void set_icons(const DialogContext& context)
 {
-	const auto load_icon = [&](const int size_metric) {
-		return LoadImageW(context.instance,
-		                  MAKEINTRESOURCEW(IDI_LAUNCHER),
-		                  IMAGE_ICON,
-		                  GetSystemMetrics(size_metric),
-		                  GetSystemMetrics(size_metric),
-		                  LR_DEFAULTCOLOR);
+	const auto dpi = GetDpiForWindow(context.dialog);
+
+	const auto set_icon = [&](const WPARAM type, const int size_metric) {
+		const auto size = GetSystemMetricsForDpi(size_metric, dpi);
+		const auto icon = LoadImageW(context.instance,
+		                             MAKEINTRESOURCEW(IDI_LAUNCHER),
+		                             IMAGE_ICON,
+		                             size,
+		                             size,
+		                             LR_DEFAULTCOLOR);
+
+		const auto previous_icon = SendMessageW(context.dialog,
+		                                        WM_SETICON,
+		                                        type,
+		                                        reinterpret_cast<LPARAM>(icon));
+		if (previous_icon) {
+			DestroyIcon(reinterpret_cast<HICON>(previous_icon));
+		}
 	};
-	SendMessageW(context.dialog,
-	             WM_SETICON,
-	             ICON_BIG,
-	             reinterpret_cast<LPARAM>(load_icon(SM_CXICON)));
-	SendMessageW(context.dialog,
-	             WM_SETICON,
-	             ICON_SMALL,
-	             reinterpret_cast<LPARAM>(load_icon(SM_CXSMICON)));
+	set_icon(ICON_BIG, SM_CXICON);
+	set_icon(ICON_SMALL, SM_CXSMICON);
+}
+
+// Fits the pages into the tab control, and gives their help texts a
+// fixed-width version of the dialog font
+static void layout_pages(DialogContext& context)
+{
+	auto help_font = create_monospaced_font(context.dialog);
+
+	for (const auto [page, help_id] : {
+	             std::pair{context.common_page,  IDC_COMMON_HELP},
+	             std::pair{   context.all_page, IDC_SETTING_HELP}
+        }) {
+		place_page(context, page);
+		SetWindowFont(GetDlgItem(page, help_id), help_font.get(), TRUE);
+		stretch_to_bottom(page, help_id);
+	}
+
+	// The previous font can only go once no control uses it anymore
+	context.help_font = std::move(help_font);
+}
+
+// Scales the current widths rather than recomputing them from dialog units,
+// as the user may have resized the columns
+static void rescale_list_columns(const HWND list, const int old_dpi, const int new_dpi)
+{
+	const auto num_columns = Header_GetItemCount(ListView_GetHeader(list));
+
+	for (auto column = 0; column < num_columns; ++column) {
+		const auto width = ListView_GetColumnWidth(list, column);
+		ListView_SetColumnWidth(list, column, MulDiv(width, new_dpi, old_dpi));
+	}
+}
+
+static void rescale_dialog(DialogContext& context)
+{
+	const auto dpi = static_cast<int>(GetDpiForWindow(context.dialog));
+
+	layout_pages(context);
+	rescale_list_columns(GetDlgItem(context.all_page, IDC_SETTINGS_LIST),
+	                     context.dpi,
+	                     dpi);
+	set_icons(context);
+
+	context.dpi = dpi;
 }
 
 static void set_check(const HWND dialog, const int id, const bool is_checked)
@@ -872,6 +929,8 @@ static void init_main_dialog(DialogContext& context)
 	const auto dialog = context.dialog;
 	const auto& state = context.state;
 
+	context.dpi = static_cast<int>(GetDpiForWindow(dialog));
+
 	set_text(dialog, WideToUtf8(DialogTitle) + " - " + get_item_name(state.item));
 	set_icons(context);
 
@@ -883,8 +942,6 @@ static void init_main_dialog(DialogContext& context)
 	}
 	set_text(GetDlgItem(dialog, IDC_CONFIG_FILES),
 	         config_files.empty() ? "(none)" : config_files);
-
-	context.help_font = create_monospaced_font(dialog);
 
 	add_tab(context.tabs, 0, L"Common");
 	add_tab(context.tabs, 1, L"All settings");
@@ -901,17 +958,8 @@ static void init_main_dialog(DialogContext& context)
 	                   all_settings_page_proc,
 	                   context_param);
 
-	place_page(context, context.common_page);
-	place_page(context, context.all_page);
+	layout_pages(context);
 	show_page(context, 0);
-
-	for (const auto [page, help_id] : {
-	             std::pair{context.common_page,  IDC_COMMON_HELP},
-	             std::pair{   context.all_page, IDC_SETTING_HELP}
-        }) {
-		SetWindowFont(GetDlgItem(page, help_id), context.help_font.get(), FALSE);
-		stretch_to_bottom(page, help_id);
-	}
 
 	init_options(context);
 	update_command_line(context);
@@ -1029,6 +1077,14 @@ static INT_PTR CALLBACK main_dialog_proc(const HWND dialog, const UINT message,
 	case WmOverridesChanged:
 		refresh_views(*context, static_cast<Page>(wparam));
 		return TRUE;
+
+	case WM_DPICHANGED:
+		// The dialog manager does the rest of the rescaling once we
+		// return FALSE
+		PostMessageW(dialog, WmDpiChanged, 0, 0);
+		return FALSE;
+
+	case WmDpiChanged: rescale_dialog(*context); return TRUE;
 
 	case WM_NOTIFY: {
 		const auto header = reinterpret_cast<const NMHDR*>(lparam);
